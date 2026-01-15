@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pt2flutter/data/repositories/login_repository.dart';
 import 'package:pt2flutter/data/services/authentication_services.dart';
+import 'package:pt2flutter/data/repositories/product_repository.dart';
 import 'package:pt2flutter/presentation/login_vm.dart';
+import 'package:pt2flutter/presentation/creation_product_vm.dart';
 
 void main() {
   runApp(
@@ -14,6 +16,10 @@ void main() {
         Provider<ILoginRepository>(
           create: (context) =>
               LoginRepository(authenticationService: context.read()),
+        ),
+        Provider<IProductRepository>(
+          create: (context) =>
+              ProductRepository(productService: context.read()),
         ),
       ],
       child: const MyApp(),
@@ -30,6 +36,10 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (context) => LoginViewModel(loginRepository: context.read()),
+        ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              CreationProductViewModel(productRepository: context.read()),
         ),
       ],
       child: MaterialApp(
@@ -63,6 +73,9 @@ class _MyHomePageState extends State<MyHomePage> {
       case 0:
         page = LoginView();
         break;
+      case 1:
+        page = CreationProductView();
+        break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
     }
@@ -80,8 +93,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 if (isLoggedIn)
                   NavigationDestination(
-                    icon: Icon(Icons.person),
-                    label: 'Profile',
+                    icon: Icon(Icons.add),
+                    label: 'Creation Product',
                   ),
               ],
               selectedIndex: selectedIndex,
@@ -106,8 +119,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       if (isLoggedIn)
                         NavigationRailDestination(
-                          icon: Icon(Icons.person),
-                          label: Text('Profile'),
+                          icon: Icon(Icons.add),
+                          label: Text('Creation Product'),
                         ),
                     ],
                     selectedIndex: selectedIndex,
@@ -199,5 +212,14 @@ class LoginView extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class CreationProductView extends StatelessWidget {
+  const CreationProductView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(child: Text('Creation Product View'));
   }
 }
