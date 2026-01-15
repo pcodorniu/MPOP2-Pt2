@@ -1,7 +1,7 @@
 class User {
   final String username;
   final bool authenticated;
-  final int id;
+  final String id;
   final String email;
   final String accessToken;
   User({
@@ -12,21 +12,13 @@ class User {
     required this.accessToken,
   });
   factory User.fromJson(Map<String, dynamic> json) {
-    return switch (json) {
-      {
-        'username': String username,
-        'id': int id,
-        'email': String email,
-        'accessToken': String accessToken,
-      } =>
-        User(
-          username: username,
-          authenticated: true,
-          id: id,
-          email: email,
-          accessToken: accessToken,
-        ),
-      _ => throw const FormatException('Failed to load User.'),
-    };
+    final user = json['user'] as Map<String, dynamic>;
+    return User(
+      username: user['email'] as String,
+      authenticated: true,
+      id: user['id'] as String,
+      email: user['email'] as String,
+      accessToken: json['access_token'] as String,
+    );
   }
 }
