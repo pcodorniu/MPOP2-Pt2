@@ -1,11 +1,9 @@
 import 'dart:convert';
-import 'package:pt2flutter/data/models/profile.dart';
 import 'package:pt2flutter/data/models/user.dart';
 import 'package:http/http.dart' as http;
 
 abstract class IAuthenticationService {
   Future<User> validateLogin(String email, String password);
-  Future<Profile> getProfile(User user);
 }
 
 class AuthenticationService implements IAuthenticationService {
@@ -36,30 +34,6 @@ class AuthenticationService implements IAuthenticationService {
       ); // HTTP Bad Request
     } else {
       throw Exception('Login error'); // HTTP Error
-    }
-  }
-
-  @override
-  Future<Profile> getProfile(User user) async {
-    final url = Uri.parse(
-      'https://itvyvvxonnsdoqokvikw.supabase.co/rest/v1/profiles?id=eq.${user.id}&select=*',
-    );
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${user.accessToken}',
-        'apikey': _apiKey,
-      },
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      if (data.isNotEmpty) {
-        return Profile.fromJson(data[0]); // HTTP OK
-      } else {
-        throw Exception('Profile not found');
-      }
-    } else {
-      throw Exception('Profile error: ${response.body}'); // HTTP Error
     }
   }
 }
