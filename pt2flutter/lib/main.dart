@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:pt2flutter/data/repositories/login_repository.dart';
 import 'package:pt2flutter/data/services/authentication_services.dart';
 import 'package:pt2flutter/data/repositories/product_repository.dart';
+import 'package:pt2flutter/data/services/product_services.dart';
 import 'package:pt2flutter/presentation/login_vm.dart';
 import 'package:pt2flutter/presentation/creation_product_vm.dart';
+import 'package:pt2flutter/presentation/product_list_vm.dart';
 
 void main() {
   runApp(
@@ -13,6 +15,7 @@ void main() {
         Provider<IAuthenticationService>(
           create: (context) => AuthenticationService(),
         ),
+        Provider<IProductService>(create: (context) => ProductService()),
         Provider<ILoginRepository>(
           create: (context) =>
               LoginRepository(authenticationService: context.read()),
@@ -41,6 +44,10 @@ class MyApp extends StatelessWidget {
           create: (context) =>
               CreationProductViewModel(productRepository: context.read()),
         ),
+        ChangeNotifierProvider(
+          create: (context) =>
+              ProductListViewModel(productRepository: context.read()),
+        ),
       ],
       child: MaterialApp(
         title: 'Namer App',
@@ -61,7 +68,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0; // ← Add this property.
+  var selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +82,9 @@ class _MyHomePageState extends State<MyHomePage> {
         break;
       case 1:
         page = CreationProductView();
+        break;
+      case 2:
+        page = ProductListView();
         break;
       default:
         throw UnimplementedError('no widget for $selectedIndex');
@@ -91,11 +101,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icon(Icons.login),
                   label: isLoggedIn ? 'Logout' : 'Login',
                 ),
-                if (isLoggedIn)
+                if (isLoggedIn) ...[
                   NavigationDestination(
                     icon: Icon(Icons.add),
-                    label: 'Creation Product',
+                    label: 'Add Product',
                   ),
+                  NavigationDestination(
+                    icon: Icon(Icons.list),
+                    label: 'Products',
+                  ),
+                ],
               ],
               selectedIndex: selectedIndex,
               onDestinationSelected: (value) {
@@ -111,17 +126,22 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 SafeArea(
                   child: NavigationRail(
-                    extended: constraints.maxWidth >= 800, // ← Here.
+                    extended: constraints.maxWidth >= 800,
                     destinations: [
                       NavigationRailDestination(
                         icon: Icon(Icons.login),
                         label: Text(isLoggedIn ? 'Logout' : 'Login'),
                       ),
-                      if (isLoggedIn)
+                      if (isLoggedIn) ...[
                         NavigationRailDestination(
                           icon: Icon(Icons.add),
-                          label: Text('Creation Product'),
+                          label: Text('Add Product'),
                         ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.list),
+                          label: Text('Products'),
+                        ),
+                      ],
                     ],
                     selectedIndex: selectedIndex,
                     onDestinationSelected: (value) {
@@ -215,11 +235,144 @@ class LoginView extends StatelessWidget {
   }
 }
 
-class CreationProductView extends StatelessWidget {
+class CreationProductView extends StatefulWidget {
   const CreationProductView({super.key});
 
   @override
+  State<CreationProductView> createState() => _CreationProductViewState();
+}
+
+class _CreationProductViewState extends State<CreationProductView> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _priceController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(child: Text('Creation Product View'));
+    final vm = context.watch<CreationProductViewModel>();
+    final loginVm = context.read<LoginViewModel>();
+    final token = loginVm.currentUser?.accessToken ?? '';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Add New Product',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Product Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a name';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              TextFormField(
+                controller: _priceController,
+                decoration: InputDecoration(labelText: 'Price'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a price';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              if (vm.isLoading)
+                CircularProgressIndicator()
+              else
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      final success = await vm.createProduct(
+                        _nameController.text,
+                        double.parse(_priceController.text),
+                        token,
+                      );
+                      if (success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(vm.successMessage!)),
+                        );
+                        _nameController.clear();
+                        _priceController.clear();
+                      }
+                    }
+                  },
+                  child: Text('Create Product'),
+                ),
+              if (vm.errorMessage != null) ...[
+                SizedBox(height: 20),
+                Text(vm.errorMessage!, style: TextStyle(color: Colors.red)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProductListView extends StatefulWidget {
+  const ProductListView({super.key});
+
+  @override
+  State<ProductListView> createState() => _ProductListViewState();
+}
+
+class _ProductListViewState extends State<ProductListView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final loginVm = context.read<LoginViewModel>();
+      final token = loginVm.currentUser?.accessToken ?? '';
+      context.read<ProductListViewModel>().fetchProducts(token);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<ProductListViewModel>();
+
+    return Scaffold(
+      appBar: AppBar(title: Text('My Products')),
+      body: vm.isLoading
+          ? Center(child: CircularProgressIndicator())
+          : vm.errorMessage != null
+          ? Center(child: Text(vm.errorMessage!))
+          : vm.products.isEmpty
+          ? Center(child: Text('No products found'))
+          : ListView.builder(
+              itemCount: vm.products.length,
+              itemBuilder: (context, index) {
+                final product = vm.products[index];
+                return ListTile(
+                  title: Text(product.name),
+                  subtitle: Text('\$${product.price.toStringAsFixed(2)}'),
+                );
+              },
+            ),
+    );
   }
 }
