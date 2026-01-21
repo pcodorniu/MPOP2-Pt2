@@ -244,13 +244,15 @@ class CreationProductView extends StatefulWidget {
 
 class _CreationProductViewState extends State<CreationProductView> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _titleController = TextEditingController();
   final _priceController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _titleController.dispose();
     _priceController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -259,9 +261,10 @@ class _CreationProductViewState extends State<CreationProductView> {
     final vm = context.watch<CreationProductViewModel>();
     final loginVm = context.read<LoginViewModel>();
     final token = loginVm.currentUser?.accessToken ?? '';
+    final userId = loginVm.currentUser?.id ?? '';
 
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
@@ -274,11 +277,11 @@ class _CreationProductViewState extends State<CreationProductView> {
               ),
               SizedBox(height: 20),
               TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Product Name'),
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Product Title'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
+                    return 'Please enter a title';
                   }
                   return null;
                 },
@@ -299,6 +302,18 @@ class _CreationProductViewState extends State<CreationProductView> {
                 },
               ),
               SizedBox(height: 20),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
               if (vm.isLoading)
                 CircularProgressIndicator()
               else
@@ -306,16 +321,19 @@ class _CreationProductViewState extends State<CreationProductView> {
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
                       final success = await vm.createProduct(
-                        _nameController.text,
-                        double.parse(_priceController.text),
-                        token,
+                        title: _titleController.text,
+                        price: double.parse(_priceController.text),
+                        description: _descriptionController.text,
+                        userId: userId,
+                        token: token,
                       );
                       if (success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(vm.successMessage!)),
                         );
-                        _nameController.clear();
+                        _titleController.clear();
                         _priceController.clear();
+                        _descriptionController.clear();
                       }
                     }
                   },
@@ -356,7 +374,11 @@ class _ProductListViewState extends State<ProductListView> {
     final vm = context.watch<ProductListViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: Text('My Products')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: Text('My Products'),
+        backgroundColor: Colors.transparent,
+      ),
       body: vm.isLoading
           ? Center(child: CircularProgressIndicator())
           : vm.errorMessage != null
@@ -368,8 +390,11 @@ class _ProductListViewState extends State<ProductListView> {
               itemBuilder: (context, index) {
                 final product = vm.products[index];
                 return ListTile(
-                  title: Text(product.name),
-                  subtitle: Text('\$${product.price.toStringAsFixed(2)}'),
+                  title: Text(product.title),
+                  subtitle: Text(
+                    '${product.description}\n\$${product.price.toStringAsFixed(2)}',
+                  ),
+                  isThreeLine: true,
                 );
               },
             ),

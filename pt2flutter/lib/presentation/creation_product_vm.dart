@@ -15,14 +15,25 @@ class CreationProductViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
 
-  Future<bool> createProduct(String name, double price, String token) async {
+  Future<bool> createProduct({
+    required String title,
+    required double price,
+    required String description,
+    required String userId,
+    required String token,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     _successMessage = null;
     notifyListeners();
 
     try {
-      final product = Product(name: name, price: price);
+      final product = Product(
+        title: title,
+        price: price,
+        description: description,
+        userId: userId,
+      );
       await productRepository.createProduct(product, token);
       _successMessage = 'Product created successfully!';
       _isLoading = false;
