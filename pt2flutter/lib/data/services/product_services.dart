@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pt2flutter/data/models/product.dart';
+import 'package:pt2flutter/config/app_config.dart';
 
 abstract class IProductService {
   Future<Product> createProduct(Product product, String token);
@@ -8,21 +9,17 @@ abstract class IProductService {
 }
 
 class ProductService implements IProductService {
-  static const String _apiKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dnl2dnhvbm5zZG9xb2t2aWt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0ODE1NTQsImV4cCI6MjA4MTA1NzU1NH0.6AxDj1flnnqtBvOjoKe9_MehqBwo0kNgxLGOf4VKQ5A';
-  static const String _baseUrl =
-      'https://itvyvvxonnsdoqokvikw.supabase.co/rest/v1';
-
   @override
   Future<Product> createProduct(Product product, String token) async {
-    final url = Uri.parse('$_baseUrl/products');
+    final url = Uri.parse('${AppConfig.restUrl}/products');
     final response = await http.post(
       url,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
-        'apikey': _apiKey,
+        'apikey': AppConfig.anonKey,
         'Prefer': 'return=representation',
+        'Accept': 'application/vnd.pgrst.object+json',
       },
       body: jsonEncode(product.toJson()),
     );
@@ -37,10 +34,10 @@ class ProductService implements IProductService {
 
   @override
   Future<List<Product>> getProducts(String token) async {
-    final url = Uri.parse('$_baseUrl/products?select=*');
+    final url = Uri.parse('${AppConfig.restUrl}/products?select=*');
     final response = await http.get(
       url,
-      headers: {'Authorization': 'Bearer $token', 'apikey': _apiKey},
+      headers: {'Authorization': 'Bearer $token', 'apikey': AppConfig.anonKey},
     );
 
     if (response.statusCode == 200) {
