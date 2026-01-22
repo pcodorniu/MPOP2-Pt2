@@ -25,8 +25,8 @@ class ProductService implements IProductService {
     );
 
     if (response.statusCode == 201) {
-      final List<dynamic> data = jsonDecode(response.body);
-      return Product.fromJson(data.first);
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      return Product.fromJson(data);
     } else {
       throw Exception('Error creating product: ${response.body}');
     }
